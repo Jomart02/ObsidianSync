@@ -250,10 +250,10 @@ void ObsidianSync::iconActivated(QSystemTrayIcon::ActivationReason reason){
             /* иначе, если окно видимо, то оно скрывается,
             * и наоборот, если скрыто, то разворачивается на экран
             * */
-            if(!this->isVisible()){
-            this->show();
+            if(!this->isVisible() && isStart){
+                this->show();
             } else {
-            this->hide();
+                this->hide();
             }
 
         break;
