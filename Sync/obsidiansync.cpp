@@ -7,20 +7,30 @@ ObsidianSync::ObsidianSync(QWidget *parent)
     ui(new Ui::ObsidianSync)
 {
     ui->setupUi(this);
-    isStart = 0;
-    isOS = OS;
+    
+    isStart = 0;//По дефолту всегла 0 при запуске 
+    isOS = OS;// Получаем тип ОС
+
+
     connect(ui->pushButton_start, SIGNAL(clicked()), this, SLOT(onStart()));
     connect(ui->pushButton_path, SIGNAL(clicked()), this, SLOT(openFolder()));
     connect(this,SIGNAL(startTimer(int)),timer,SLOT(start(int)));
+    //Инициализируем при первом запуске
     SettingUpdate::Initialization(SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
     SettingUpdate::Initialization(SettingUpdate::TypeSetting::REMOTE);
-    ObsidianPath = SettingUpdate::LoadSetting("folder","obsidian",SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
-    remoteRef = SettingUpdate::LoadSetting("Remote","ref",SettingUpdate::TypeSetting::REMOTE);
+    //Запущенно ли приложение - если пк был перезагружен
     isStart = SettingUpdate::LoadSetting("Start","bool",SettingUpdate::TypeSetting::ISSTART).toInt();
-    pathToCommand = "\"" + ObsidianPath + "\"";
+    //Получаем данные - если была запущена прога 
+    if(isStart){
+        ObsidianPath = SettingUpdate::LoadSetting("folder","obsidian",SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
+        remoteRef = SettingUpdate::LoadSetting("Remote","ref",SettingUpdate::TypeSetting::REMOTE);
+        pathToCommand = "\"" + ObsidianPath + "\"";
+    }
+    //Так же если была запущена прога до выключения пк - запускаем по новой
     if(isStart){
         onStart();
     }
+
 
 }
 bool ObsidianSync::getStart(){
@@ -31,21 +41,45 @@ ObsidianSync::~ObsidianSync(){
     delete ui;
 }
 void ObsidianSync::onStart(){
-    saveData();
-    gitInit();
+    if(!checkingData()) return;
+
+    saveData();//Сохраняем введенные данные 
+    gitInit();//Инициализация гита (один раз)
+    
+    //Запуск таймера для сонхронизации с гитом 
     connect(timer, SIGNAL(timeout()), this, SLOT(sync()));  
     emit startTimer(60000);
     //emit startTimer(300000);
+    //программа запущена 
     SettingUpdate::SaveSetting("Start","bool","1",SettingUpdate::TypeSetting::ISSTART);
 
+    //Для вывода в трей для проверки нужно чтобы переменна запуска перезаписывалась
     if(isStart ){
         isStart = 0;
     }
-    toTray();
+
+    toTray();//Вывод в трей 
     isStart=1;
-    this->hide();
-    toAutoStart();
+    this->hide();//Сокрытие приложения
+    toAutoStart();//Добавление в автозапуск
 }
+
+bool ObsidianSync::checkingData(){
+    if(remoteRef == "") {
+        setError("Data error","Error linking to remote repository");
+        return false;
+    }
+    if(ObsidianPath == "") {
+        setError("Data error","Folder path error");
+        return false;
+    }
+    return true;
+}
+
+void ObsidianSync::setError(QString title, QString error){
+      QMessageBox::warning(this, title,error , QMessageBox::Cancel);
+}
+
 void ObsidianSync::sync(){
     gitPull();
     gitPush();
@@ -65,18 +99,15 @@ void ObsidianSync::onStop(){
 
 void ObsidianSync::openFolder(){
     QString filename= QFileDialog::getExistingDirectory(this,"Choose Folder");
-    ui->lineEdit_path->setText(filename);
     if (filename.isEmpty())
         return;
-    ObsidianPath = filename;
-
-   
+    ui->lineEdit_path->setText(filename);
+    ObsidianPath = filename;//Сохраняем в переменную выбранную папку ы
 }
-
+//Сохраняем все введенные данные
 void ObsidianSync::saveData(){
     SettingUpdate::SaveSetting("folder","obsidian",ObsidianPath,SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
     remoteRef =  ui->lineEdit_branch->text();
-   // remoteRef =  "http://localhost:3000/pad/SynhObsidian.git";
     SettingUpdate::SaveSetting("folder","obsidian",remoteRef,SettingUpdate::TypeSetting::REMOTE);
 }
 
@@ -134,7 +165,6 @@ void ObsidianSync::toAutoStart(){
 //===================================== GIT =====================================
 
 void ObsidianSync::gitInit(){
-    //remoteRef =  ui->lineEdit_branch->text();
     pathToCommand = "\"" + ObsidianPath + "\"";
     QDir file(ObsidianPath + "/.git/");
     if (!file.exists()) {

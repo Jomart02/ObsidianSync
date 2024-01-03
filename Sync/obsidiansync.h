@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QTextStream>
 #include <QStandardPaths>
+#include <QMessageBox>
 
 
 #ifdef Q_OS_WIN32
@@ -47,25 +48,46 @@ protected:
      */
     void closeEvent(QCloseEvent * event);
 private slots:
+    /// @brief сохранение настроек
     void saveData();
+    /// @brief Открытие выбора папки 
     void openFolder();
+    /// @brief нажатие кнопки старт 
     void onStart();
+    /// @brief Нажатие кнопки стоп 
     void onStop();
+    /// @brief Синхронизация программы
     void sync();
 
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
 private:
+    /// @brief Инициализация гита
     void gitInit();
+    /// @brief pull гита
     void gitPull();
+    /// @brief push гита
     void gitPush();
+    /// @brief merge гита
     void gitMerge();
+    /// @brief Логин в гите - не нужен так как идет автологин 
     void login();
+    /// @brief Вывод программы в трей 
     void toTray();
+    /// @brief Добавление программы в автозапуск 
     void toAutoStart();
+    /// @brief Провнрка введенных данных 
+    /// @return t/f если не было исключений
+    bool checkingData();
+    void setError(QString title, QString error);
+    /// @brief Тип ос 0 - винда, 1 - линукс
     bool isOS;
+    /// @brief Запущенна ли прога 
     bool isStart;
     QTimer *timer;
     Ui::ObsidianSync *ui;
+
+
+    /// Дефолтные программы 
 
     QString ObsidianPath;
     QString pathToCommand;

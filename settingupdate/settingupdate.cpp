@@ -1,4 +1,8 @@
 #include "settingupdate.h"
+
+///Пути к файлам
+///Надо прописать по другому 
+
 #define PATH QDir::homePath()+"/syncObsidian/folder.ini"
 #define PATHREMOTE QDir::homePath()+"/syncObsidian/remote.ini"
 #define PATHSTART QDir::homePath()+"/syncObsidian/start.ini"
