@@ -90,6 +90,7 @@ private:
     /// Дефолтные программы 
 
     QString ObsidianPath;
+    QString branch = "master";
     QString pathToCommand;
     QString commandGitInit = "git init ";
     QString commandDir = "git -C ";

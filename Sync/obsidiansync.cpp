@@ -15,17 +15,19 @@ ObsidianSync::ObsidianSync(QWidget *parent)
     connect(ui->pushButton_start, SIGNAL(clicked()), this, SLOT(onStart()));
     connect(ui->pushButton_path, SIGNAL(clicked()), this, SLOT(openFolder()));
     connect(this,SIGNAL(startTimer(int)),timer,SLOT(start(int)));
+    
+    ui->lineEdit_branch->setText(branch);
     //Инициализируем при первом запуске
     SettingUpdate::Initialization(SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
     SettingUpdate::Initialization(SettingUpdate::TypeSetting::REMOTE);
     //Запущенно ли приложение - если пк был перезагружен
     isStart = SettingUpdate::LoadSetting("Start","bool",SettingUpdate::TypeSetting::ISSTART).toInt();
-    //Получаем данные - если была запущена прога 
-    if(isStart){
-        ObsidianPath = SettingUpdate::LoadSetting("folder","obsidian",SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
-        remoteRef = SettingUpdate::LoadSetting("Remote","ref",SettingUpdate::TypeSetting::REMOTE);
-        pathToCommand = "\"" + ObsidianPath + "\"";
-    }
+    //Получаем данные
+    ObsidianPath = SettingUpdate::LoadSetting("folder","obsidian",SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
+    remoteRef = SettingUpdate::LoadSetting("Remote","ref",SettingUpdate::TypeSetting::REMOTE);
+    branch = SettingUpdate::LoadSetting("Remote","branch",SettingUpdate::TypeSetting::REMOTE);
+    pathToCommand = "\"" + ObsidianPath + "\"";
+
     //Так же если была запущена прога до выключения пк - запускаем по новой
     if(isStart){
         onStart();
@@ -48,7 +50,7 @@ void ObsidianSync::onStart(){
     
     //Запуск таймера для сонхронизации с гитом 
     connect(timer, SIGNAL(timeout()), this, SLOT(sync()));  
-    emit startTimer(60000);
+    emit startTimer(15000);
     //emit startTimer(300000);
     //программа запущена 
     SettingUpdate::SaveSetting("Start","bool","1",SettingUpdate::TypeSetting::ISSTART);
@@ -65,6 +67,12 @@ void ObsidianSync::onStart(){
 }
 
 bool ObsidianSync::checkingData(){
+    if(!isStart){
+        remoteRef =  ui->lineEdit_link->text();
+        branch = ui->lineEdit_branch->text();
+    }
+    qDebug() << remoteRef << branch << ObsidianPath;
+
     if(remoteRef == "") {
         setError("Data error","Error linking to remote repository");
         return false;
@@ -73,6 +81,13 @@ bool ObsidianSync::checkingData(){
         setError("Data error","Folder path error");
         return false;
     }
+    QDir dir(ObsidianPath);
+    if(!dir.exists(ObsidianPath)){
+        setError("Data error","Folder path error");
+        return false;
+    }
+
+
     return true;
 }
 
@@ -99,16 +114,19 @@ void ObsidianSync::onStop(){
 
 void ObsidianSync::openFolder(){
     QString filename= QFileDialog::getExistingDirectory(this,"Choose Folder");
-    if (filename.isEmpty())
+
+    if (filename.isEmpty()){
+        setError("Data error","Folder path error");
         return;
+    } 
     ui->lineEdit_path->setText(filename);
-    ObsidianPath = filename;//Сохраняем в переменную выбранную папку ы
+    ObsidianPath = filename;//Сохраняем в переменную выбранную папку
 }
 //Сохраняем все введенные данные
 void ObsidianSync::saveData(){
     SettingUpdate::SaveSetting("folder","obsidian",ObsidianPath,SettingUpdate::TypeSetting::FOLDER_OBSIDIAN);
-    remoteRef =  ui->lineEdit_branch->text();
-    SettingUpdate::SaveSetting("folder","obsidian",remoteRef,SettingUpdate::TypeSetting::REMOTE);
+    SettingUpdate::SaveSetting("Remote","ref",remoteRef,SettingUpdate::TypeSetting::REMOTE);
+    SettingUpdate::SaveSetting("Remote","branch",branch,SettingUpdate::TypeSetting::REMOTE);
 }
 
 void ObsidianSync::toAutoStart(){
@@ -186,6 +204,7 @@ void ObsidianSync::gitInit(){
         command = remote.toUtf8().constData();
         system(command);
 
+        gitPull();
         gitPush();
     }
 
@@ -195,14 +214,16 @@ void ObsidianSync::gitPull(){
 
         gitMerge();
 
-        QString pull = commandDir + pathToCommand  + " pull origin master";
+        QString pull = commandDir + pathToCommand  + " pull origin " +branch;
         const char* command = pull.toUtf8().constData();
         system(command);
+
+        // pull = commandDir + pathToCommand  + " pull origin --rebase";
+        // command = pull.toUtf8().constData();
+        // system(command);
 }
 
 void ObsidianSync::gitPush(){
-
-        gitPull();
 
         QString add = commandDir + pathToCommand  + " add .";
         const char* command = add.toUtf8().constData();
@@ -212,7 +233,7 @@ void ObsidianSync::gitPush(){
         command = commit.toUtf8().constData();
         system(command);
 
-        QString push = commandDir + pathToCommand  + " push origin master";
+        QString push = commandDir + pathToCommand  + " push -f origin " + branch;
         command = push.toUtf8().constData();
         system(command);
        // login();
@@ -224,12 +245,12 @@ void ObsidianSync::login(){
 }
 void ObsidianSync::gitMerge(){
 
-    QString fetch = commandDir + pathToCommand  + " fetch origin";
+    QString fetch = commandDir + pathToCommand  + " fetch origin " + branch;
     const char* command = fetch.toUtf8().constData();
     system(command);
 
 
-    QString commit = commandDir + pathToCommand  + " merge origin master" ;
+    QString commit = commandDir + pathToCommand  + " merge origin " + branch ;
     command = commit.toUtf8().constData();
     system(command);
 
