@@ -3,6 +3,7 @@ set(TARGET ObsidianSync)
 
 cmake_minimum_required(VERSION 3.22)
 
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -25,7 +26,14 @@ set(UIS
 
 )
 
-add_executable(${TARGET} ${SRCS} ${UIS})
+if(LINUX) 
+    message(STATUS ">>> Linux")
+    add_executable(${TARGET} ${SRCS} ${UIS} )
+else()
+    message(STATUS ">>> Not Linux")
+    add_executable(${TARGET} WIN32 ${SRCS} ${UIS} )# off windows console
+
+endif()
 
 target_link_libraries(${TARGET} Qt6::Widgets setting)
 # add_dependencies(${TARGET} )

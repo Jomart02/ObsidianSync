@@ -13,6 +13,7 @@ ObsidianSync::ObsidianSync(QWidget *parent)
 
 
     connect(ui->pushButton_start, SIGNAL(clicked()), this, SLOT(onStart()));
+    connect(ui->pushButton_stop, SIGNAL(clicked()), this, SLOT(onStop()));
     connect(ui->pushButton_path, SIGNAL(clicked()), this, SLOT(openFolder()));
     connect(this,SIGNAL(startTimer(int)),timer,SLOT(start(int)));
     
@@ -71,8 +72,6 @@ bool ObsidianSync::checkingData(){
         remoteRef =  ui->lineEdit_link->text();
         branch = ui->lineEdit_branch->text();
     }
-    qDebug() << remoteRef << branch << ObsidianPath;
-
     if(remoteRef == "") {
         setError("Data error","Error linking to remote repository");
         return false;
